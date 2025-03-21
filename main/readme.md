@@ -5,7 +5,7 @@
 ![GitHub Issues](https://img.shields.io/github/issues/aman-naveen1/ai-powered-sound-recognition-system)
 ![GitHub License](https://img.shields.io/github/license/aman-naveen1/ai-powered-sound-recognition-system)
 ![Sound Recognition](https://img.shields.io/badge/Audio%20Analysis-Librosa-blue)  
-![C++](https://img.shields.io/badge/C++-17-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-yellow) ![GitHub](https://img.shields.io/github/stars/aman-naveen1/ai-powered-sound-recognition-system?style=social)  
+![C++](https://img.shields.io/badge/C++-17-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-yellow) 
 
 
 ## 🚀 Overview
