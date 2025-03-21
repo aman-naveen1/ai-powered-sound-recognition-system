@@ -4,6 +4,9 @@
 ![GitHub Forks](https://img.shields.io/github/forks/aman-naveen1/ai-powered-sound-recognition-system?style=social)
 ![GitHub Issues](https://img.shields.io/github/issues/aman-naveen1/ai-powered-sound-recognition-system)
 ![GitHub License](https://img.shields.io/github/license/aman-naveen1/ai-powered-sound-recognition-system)
+![Sound Recognition](https://img.shields.io/badge/Audio%20Analysis-Librosa-blue)  
+![C++](https://img.shields.io/badge/C++-17-blue) ![Python](https://img.shields.io/badge/Python-3.9%2B-yellow) ![GitHub](https://img.shields.io/github/stars/aman-naveen1/ai-powered-sound-recognition-system?style=social)  
+
 
 ## 🚀 Overview
 The **Sound Recognition Program** is a C++ terminal-based tool that records, processes, and analyzes audio files using AI-powered techniques. It uses **multithreading** for faster execution and integrates with **Python (Librosa)** for feature extraction.
