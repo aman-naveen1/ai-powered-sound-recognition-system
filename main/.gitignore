@@ -1,0 +1,28 @@
+# Ignore compiled binaries and object files
+*.o
+*.out
+*.exe
+
+# Ignore Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+
+# Ignore audio files (except for example.wav)
+assets/*.wav
+!assets/example.wav
+
+# Ignore logs and temporary files
+logs/
+*.log
+*.tmp
+*.bak
+
+# Ignore build files (CMake and Make)
+build/
+cmake-build-debug/
+CMakeCache.txt
+CMakeFiles/
+Makefile
