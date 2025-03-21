@@ -59,7 +59,7 @@ g++ -std=c++11 sound_recognition.cpp -o sound_recognition
 We welcome contributions! Feel free to open **issues**, submit **pull requests**, or suggest new **features**.
 
 ## 📜 License
-This project is licensed under the **MIT License**.
+This project is licensed under the **Apache License 2.0**.
 
 ## ⭐ Support & Share
 If you find this project useful, **star** ⭐ it on GitHub and share it with your friends! 🚀
