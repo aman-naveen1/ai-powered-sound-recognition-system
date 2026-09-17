@@ -1,7 +1,6 @@
 import base64
 import os
 import sys
-from pathlib import Path
 
 import requests
 
@@ -35,7 +34,7 @@ def search_track(query):
     response = requests.get(
         SEARCH_URL,
         headers={"Authorization": f"Bearer {token}"},
-        params={"q": query, "type": "track", "limit": 1},
+        params={"q": query, "type": "track", "market": "IN", "limit": 1},
         timeout=15,
     )
     response.raise_for_status()
@@ -48,21 +47,11 @@ def search_track(query):
     images = album.get("images", [])
     return {
         "track": track.get("name", "Unknown"),
-        "artist": ", ".join(a["name"] for a in track.get("artists", [])),
+        "artist": ", ".join(a.get("name", "") for a in track.get("artists", [])),
         "album": album.get("name", "Unknown"),
         "spotify_url": track.get("external_urls", {}).get("spotify", ""),
-        "cover_url": images[0]["url"] if images else "",
+        "cover_url": images[0].get("url", "") if images else "",
     }
-
-
-def save_cover(data):
-    if not data or not data["cover_url"]:
-        return ""
-    output = Path(__file__).resolve().parent.parent / "assets" / "album_cover.jpg"
-    response = requests.get(data["cover_url"], timeout=15)
-    response.raise_for_status()
-    output.write_bytes(response.content)
-    return str(output)
 
 
 if __name__ == "__main__":
@@ -75,13 +64,12 @@ if __name__ == "__main__":
         if not result:
             print("No Spotify track found.")
             sys.exit(1)
-        cover_path = save_cover(result)
+
         print(f"Track: {result['track']}")
         print(f"Artist: {result['artist']}")
         print(f"Album: {result['album']}")
         print(f"Spotify: {result['spotify_url']}")
         print(f"Cover URL: {result['cover_url']}")
-        print(f"Cover saved: {cover_path}")
     except requests.RequestException as exc:
         print(f"Spotify request failed: {exc}")
         sys.exit(1)
