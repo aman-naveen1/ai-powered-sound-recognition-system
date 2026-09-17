@@ -12,13 +12,13 @@ private:
 
 public:
     SoundRecognition();
-
     void displayMenu();
     void recordAudio();
     void processAudio(const std::string& filePath);
     void analyzeFeatures();
     void classifyAudio();
     void displayResults();
+    void findOnSpotify();
 };
 
-#endif // SOUND_RECOGNITION_H
+#endif
