@@ -21,7 +21,7 @@ int main() {
                 app.processAudio(filePath);
                 break;
             case 3:
-                app.analyzeFeatures();
+                app.classifyAudio();
                 break;
             case 4:
                 app.displayResults();
