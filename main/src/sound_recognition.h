@@ -4,13 +4,21 @@
 #include <string>
 
 class SoundRecognition {
+private:
+    std::string lastFile;
+    double lastTempo;
+    std::string lastGenre;
+    std::string lastIntensity;
+
 public:
     SoundRecognition();
-    void displayMenu();        // Shows the ASCII menu
-    void recordAudio();        // Records audio using system tools
-    void processAudio();       // Extracts sound features
-    void classifyAudio();      // Uses AI to classify the sound
-    void displayResults();     // Displays results in ASCII format
+
+    void displayMenu();
+    void recordAudio();
+    void processAudio(const std::string& filePath);
+    void analyzeFeatures();
+    void classifyAudio();
+    void displayResults();
 };
 
 #endif // SOUND_RECOGNITION_H
