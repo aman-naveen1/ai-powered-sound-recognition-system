@@ -2,21 +2,23 @@
 #include "waveform.h"
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QDesktopServices>
+#include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QMimeData>
 #include <QNetworkReply>
-#include <QPainter>
+#include <QNetworkRequest>
+#include <QPixmap>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QScrollArea>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <QDir>
-#include <QUrlQuery>
+#include <QUrl>
 
 namespace {
 QLabel *makeLabel(const QString &text, const QString &className = QString()) {
@@ -32,8 +34,7 @@ QPushButton *makeButton(const QString &text, const QString &className = QString(
 }
 }
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), recorder(this) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), recorder(this) {
     setWindowTitle("SwiftMusicSorting");
     setMinimumSize(1180, 760);
     resize(1440, 900);
@@ -48,12 +49,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(pythonProcess, &QProcess::readyReadStandardError, this, [this]() {
         pythonOutput += QString::fromUtf8(pythonProcess->readAllStandardError());
     });
-    connect(pythonProcess, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
-            this, &MainWindow::processFinished);
+    connect(pythonProcess, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, &MainWindow::processFinished);
     connect(pythonProcess, &QProcess::errorOccurred, this, &MainWindow::processError);
     connect(&recorder, &QMediaRecorder::errorOccurred, this, [this](QMediaRecorder::Error, const QString &error) {
-        setStatus("Recording error: " + error);
+        setStatus("RECORDING ERROR");
         waveform->setActive(false);
+        statusLabel->setToolTip(error);
     });
 
     buildUi();
@@ -67,16 +68,13 @@ void MainWindow::buildUi() {
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
 
-    // Sidebar
     auto *sidebar = new QWidget;
     sidebar->setObjectName("sidebar");
     sidebar->setFixedWidth(235);
     auto *side = new QVBoxLayout(sidebar);
     side->setContentsMargins(24, 28, 20, 24);
     side->setSpacing(8);
-
-    auto *brand = makeLabel("SWIFT\nMUSIC", "brand");
-    side->addWidget(brand);
+    side->addWidget(makeLabel("SWIFT\nMUSIC", "brand"));
     side->addSpacing(26);
 
     const QStringList nav = {"⌂   Home", "◉   Recognize", "♫   Your Library", "↺   History", "⚙   Settings"};
@@ -85,7 +83,6 @@ void MainWindow::buildUi() {
         b->setCursor(Qt::PointingHandCursor);
         side->addWidget(b);
     }
-
     side->addStretch();
     auto *quote = makeLabel("Music is what\nfeelings sound like.", "quote");
     quote->setWordWrap(true);
@@ -94,7 +91,6 @@ void MainWindow::buildUi() {
     side->addWidget(makeLabel("Made with ♥ by Aman Naveen", "madeBy"));
     rootLayout->addWidget(sidebar);
 
-    // Main content
     auto *scroll = new QScrollArea;
     scroll->setWidgetResizable(true);
     scroll->setFrameShape(QFrame::NoFrame);
@@ -114,15 +110,14 @@ void MainWindow::buildUi() {
     header->addWidget(statusLabel, 0, Qt::AlignTop);
     main->addLayout(header);
 
-    // Listening card
     auto *listenCard = new QWidget;
     listenCard->setObjectName("listenCard");
     auto *listen = new QVBoxLayout(listenCard);
     listen->setContentsMargins(28, 24, 28, 24);
     listen->setSpacing(14);
-
     auto *listenTop = new QHBoxLayout;
     auto *listenTitle = new QVBoxLayout;
+    listenTitle->setSpacing(4);
     listenTitle->addWidget(makeLabel("LISTENING STATION", "eyebrow"));
     fileLabel = makeLabel("No track selected", "fileName");
     listenTitle->addWidget(fileLabel);
@@ -134,7 +129,6 @@ void MainWindow::buildUi() {
 
     waveform = new WaveformWidget;
     listen->addWidget(waveform);
-
     auto *actions = new QHBoxLayout;
     actions->setSpacing(10);
     uploadButton = makeButton("＋  Upload File", "primary");
@@ -149,7 +143,6 @@ void MainWindow::buildUi() {
     listen->addLayout(actions);
     main->addWidget(listenCard);
 
-    // Feature cards
     auto *featureHeader = new QHBoxLayout;
     featureHeader->addWidget(makeLabel("Audio Features", "sectionTitle"));
     featureHeader->addStretch();
@@ -172,7 +165,6 @@ void MainWindow::buildUi() {
     }
     main->addLayout(features);
 
-    // Genre row
     auto *genreCard = new QWidget;
     genreCard->setObjectName("genreCard");
     auto *genreLayout = new QHBoxLayout(genreCard);
@@ -187,21 +179,17 @@ void MainWindow::buildUi() {
     scroll->setWidget(content);
     rootLayout->addWidget(scroll, 1);
 
-    // Right result panel
     auto *right = new QWidget;
     right->setObjectName("rightPanel");
     right->setFixedWidth(330);
     auto *r = new QVBoxLayout(right);
     r->setContentsMargins(24, 28, 24, 28);
     r->setSpacing(14);
-
     r->addWidget(makeLabel("MATCH RESULT", "eyebrow"));
-    coverLabel = makeLabel;
-    coverLabel->setObjectName("cover");
+    coverLabel = makeLabel("♪", "cover");
     coverLabel->setFixedSize(282, 282);
     coverLabel->setAlignment(Qt::AlignCenter);
     r->addWidget(coverLabel, 0, Qt::AlignCenter);
-
     matchLabel = makeLabel("—", "match");
     matchLabel->setAlignment(Qt::AlignCenter);
     r->addWidget(matchLabel);
@@ -215,19 +203,16 @@ void MainWindow::buildUi() {
     albumLabel = makeLabel("", "album");
     albumLabel->setAlignment(Qt::AlignCenter);
     r->addWidget(albumLabel);
-
     spotifyButton = makeButton("Open in Spotify  ↗", "spotify");
     spotifyButton->setCursor(Qt::PointingHandCursor);
     r->addWidget(spotifyButton);
     r->addStretch();
-
     auto *hint = makeLabel("Tip  ·  Use a clear 10–30 sec clip for faster recognition.", "hint");
     hint->setWordWrap(true);
     r->addWidget(hint);
     rootLayout->addWidget(right);
 
     setCentralWidget(root);
-
     connect(uploadButton, &QPushButton::clicked, this, &MainWindow::chooseFile);
     connect(recognizeButton, &QPushButton::clicked, this, &MainWindow::recognizeCurrentFile);
     connect(micButton, &QPushButton::clicked, this, &MainWindow::startMicrophone);
@@ -238,9 +223,8 @@ void MainWindow::buildUi() {
 }
 
 void MainWindow::applyStyle() {
-    QString path = QDir(QCoreApplication::applicationDirPath()).filePath("style.qss");
-    QStringList candidates = {
-        path,
+    const QStringList candidates = {
+        QDir(QCoreApplication::applicationDirPath()).filePath("style.qss"),
         QDir(QCoreApplication::applicationDirPath()).filePath("../src/gui/style.qss"),
         QDir::current().filePath("src/gui/style.qss"),
         QDir::current().filePath("main/src/gui/style.qss")
@@ -264,6 +248,13 @@ QString MainWindow::findPythonScript(const QString &name) const {
     return {};
 }
 
+void MainWindow::setStatus(const QString &text, bool busy) {
+    statusLabel->setText(text);
+    statusLabel->setProperty("busy", busy);
+    statusLabel->style()->unpolish(statusLabel);
+    statusLabel->style()->polish(statusLabel);
+}
+
 void MainWindow::chooseFile() {
     const QString path = QFileDialog::getOpenFileName(this, "Choose an audio file", QString(),
         "Audio files (*.wav *.mp3 *.flac *.m4a *.aac *.ogg);;All files (*.*)");
@@ -285,11 +276,10 @@ void MainWindow::recognizeCurrentFile() {
 void MainWindow::runPython(const QString &script, const QString &filePath) {
     const QString scriptPath = findPythonScript(script);
     if (scriptPath.isEmpty()) {
-        setStatus("PYTHON SCRIPT NOT FOUND");
+        setStatus("SCRIPT NOT FOUND");
         return;
     }
     if (pythonProcess->state() != QProcess::NotRunning) return;
-
     pythonOutput.clear();
     waveform->setActive(true);
     setStatus("ANALYZING…", true);
@@ -307,13 +297,8 @@ void MainWindow::processFinished(int exitCode, QProcess::ExitStatus status) {
     uploadButton->setEnabled(true);
     micButton->setEnabled(true);
     setStatus(exitCode == 0 ? "DONE" : "ERROR");
-
-    if (pythonOutput.contains("Title:") || pythonOutput.contains("Recognition:")) {
-        parseRecognitionOutput(pythonOutput);
-    }
-    if (pythonOutput.contains("Tempo:") || pythonOutput.contains("Genre estimate:")) {
-        parseFeatureOutput(pythonOutput);
-    }
+    if (pythonOutput.contains("Title:") || pythonOutput.contains("Recognition:")) parseRecognitionOutput(pythonOutput);
+    if (pythonOutput.contains("Tempo:") || pythonOutput.contains("Genre estimate:")) parseFeatureOutput(pythonOutput);
 }
 
 void MainWindow::processError(QProcess::ProcessError error) {
@@ -322,45 +307,34 @@ void MainWindow::processError(QProcess::ProcessError error) {
 
 void MainWindow::parseRecognitionOutput(const QString &output) {
     auto value = [&output](const QString &key) {
-        QRegularExpression re("^" + QRegularExpression::escape(key) + "\\s*(.*)$",
-                              QRegularExpression::MultilineOption);
+        QRegularExpression re("^" + QRegularExpression::escape(key) + "\\s*(.*)$", QRegularExpression::MultilineOption);
         const auto match = re.match(output);
         return match.hasMatch() ? match.captured(1).trimmed() : QString();
     };
-
     const QString title = value("Title:");
     const QString artist = value("Artist:");
     const QString album = value("Album:");
     spotifyUrl = value("Spotify:");
     const QString cover = value("Album cover:");
-
     if (!title.isEmpty()) songTitle->setText(title);
     if (!artist.isEmpty()) artistLabel->setText(artist);
     if (!album.isEmpty()) albumLabel->setText(album);
-
-    if (!title.isEmpty() && title != "Unknown") {
-        matchLabel->setText("MATCH FOUND");
-    } else {
-        matchLabel->setText("NO MATCH");
-    }
+    matchLabel->setText(!title.isEmpty() && title != "Unknown" ? "MATCH FOUND" : "NO MATCH");
     spotifyButton->setEnabled(!spotifyUrl.isEmpty() && spotifyUrl != "Not available");
     if (!cover.isEmpty() && cover != "Not available") showCover(QUrl(cover));
 }
 
 void MainWindow::parseFeatureOutput(const QString &output) {
     auto value = [&output](const QString &key) {
-        QRegularExpression re("^" + QRegularExpression::escape(key) + "\\s*(.*)$",
-                              QRegularExpression::MultilineOption);
+        QRegularExpression re("^" + QRegularExpression::escape(key) + "\\s*(.*)$", QRegularExpression::MultilineOption);
         const auto match = re.match(output);
         return match.hasMatch() ? match.captured(1).trimmed() : QString();
     };
-
     const QString tempo = value("Tempo:");
     const QString intensity = value("Intensity:");
     const QString genre = value("Genre estimate:");
     const QString centroid = value("Spectral centroid:");
     const QString zcr = value("Zero-crossing rate:");
-
     if (!tempo.isEmpty()) tempoValue->setText(tempo);
     if (!intensity.isEmpty()) intensityValue->setText(intensity);
     if (!genre.isEmpty()) genreValue->setText(genre);
@@ -392,9 +366,8 @@ void MainWindow::showCover(const QUrl &url) {
 void MainWindow::coverFinished() {
     auto *reply = qobject_cast<QNetworkReply *>(sender());
     if (!reply) return;
-    const QByteArray data = reply->readAll();
     QPixmap pix;
-    if (pix.loadFromData(data)) {
+    if (pix.loadFromData(reply->readAll())) {
         coverLabel->setText("");
         coverLabel->setPixmap(pix.scaled(282, 282, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
     }
@@ -403,7 +376,6 @@ void MainWindow::coverFinished() {
 
 void MainWindow::startMicrophone() {
     if (recorder.recorderState() == QMediaRecorder::RecordingState) return;
-
     recordingFile = QDir(QDir::tempPath()).filePath("swiftmusic_recording.m4a");
     QFile::remove(recordingFile);
     recorder.setOutputLocation(QUrl::fromLocalFile(recordingFile));
@@ -420,7 +392,7 @@ void MainWindow::stopMicrophone() {
     timerLabel->setText("00:00");
     currentFile = recordingFile;
     fileLabel->setText("Microphone recording");
-    QTimer::singleShot(500, this, [this]() {
+    QTimer::singleShot(700, this, [this]() {
         if (QFileInfo::exists(currentFile)) recognizeCurrentFile();
     });
 }
