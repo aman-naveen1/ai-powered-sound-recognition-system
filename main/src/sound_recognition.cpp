@@ -1,12 +1,49 @@
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <thread>
+#include <vector>
 #include "sound_recognition.h"
 
 SoundRecognition::SoundRecognition()
     : lastFile(), lastTempo(0.0), lastGenre("Unknown"), lastIntensity("Unknown") {}
+
+void SoundRecognition::setExecutablePath(const std::string& exePath) {
+    if (exePath.empty()) {
+        return;
+    }
+
+    std::filesystem::path path(exePath);
+    if (path.is_relative()) {
+        path = std::filesystem::absolute(path);
+    }
+    executableDir = path.parent_path().string();
+}
+
+std::string SoundRecognition::resolveProcessAudioScript() const {
+    std::vector<std::filesystem::path> candidates;
+
+    if (!executableDir.empty()) {
+        std::filesystem::path exeDir(executableDir);
+        candidates.push_back(exeDir / "python" / "process_audio.py");
+        candidates.push_back(exeDir / ".." / "python" / "process_audio.py");
+        candidates.push_back(exeDir / ".." / ".." / "python" / "process_audio.py");
+    }
+
+    std::filesystem::path cwd = std::filesystem::current_path();
+    candidates.push_back(cwd / "python" / "process_audio.py");
+    candidates.push_back(cwd / ".." / "python" / "process_audio.py");
+
+    for (const auto& candidate : candidates) {
+        if (std::filesystem::exists(candidate)) {
+            return std::filesystem::weakly_canonical(candidate).string();
+        }
+    }
+
+    return "";
+}
 
 void SoundRecognition::displayMenu() {
     std::cout << "\n===================================\n";
@@ -29,7 +66,14 @@ void SoundRecognition::processAudio(const std::string& filePath) {
     lastFile = filePath;
     std::cout << "[INFO] Processing: " << filePath << "\n";
 
-    std::string command = "python python/process_audio.py \"" + filePath + "\"";
+    std::string scriptPath = resolveProcessAudioScript();
+    if (scriptPath.empty()) {
+        std::cerr << "[ERROR] Could not locate python/process_audio.py. "
+                  << "Place the python folder beside the executable or run from the project root.\n";
+        return;
+    }
+
+    std::string command = "python \"" + scriptPath + "\" \"" + filePath + "\"";
     int result = std::system(command.c_str());
 
     if (result != 0) {
@@ -47,7 +91,14 @@ void SoundRecognition::analyzeFeatures() {
     }
 
     std::cout << "[INFO] Running feature analysis...\n";
-    std::string command = "python python/process_audio.py \"" + lastFile + "\"";
+    std::string scriptPath = resolveProcessAudioScript();
+    if (scriptPath.empty()) {
+        std::cerr << "[ERROR] Could not locate python/process_audio.py. "
+                  << "Place the python folder beside the executable or run from the project root.\n";
+        return;
+    }
+
+    std::string command = "python \"" + scriptPath + "\" \"" + lastFile + "\"";
     int result = std::system(command.c_str());
 
     if (result != 0)

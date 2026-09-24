@@ -108,6 +108,35 @@ On Windows:
 .\build\Debug\sound_recognition.exe
 ```
 
+## Deploy as a Windows EXE package
+
+Create an install folder (contains the EXE + Python scripts):
+
+```powershell
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+cmake --install build --config Release --prefix build\deploy
+```
+
+Then generate a distributable ZIP package:
+
+```powershell
+cd build
+cpack -C Release
+```
+
+The generated ZIP includes:
+- `sound_recognition.exe`
+- `python/process_audio.py` and related Python modules
+- `.env.example`
+- `requirements.txt`
+
+Before running the deployed EXE on another machine, install Python 3.9+ and run:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
 ## Identify a song from an audio file
 
 The recognition module can be tested independently:

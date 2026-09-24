@@ -1,8 +1,11 @@
 #include <iostream>
 #include "sound_recognition.h"
 
-int main() {
+int main(int argc, char* argv[]) {
     SoundRecognition app;
+    if (argc > 0) {
+        app.setExecutablePath(argv[0]);
+    }
     int choice;
     std::string filePath;
 

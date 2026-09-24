@@ -12,3 +12,12 @@ add_executable(sound_recognition
 )
 
 target_include_directories(sound_recognition PRIVATE src)
+
+install(TARGETS sound_recognition RUNTIME DESTINATION .)
+install(DIRECTORY python DESTINATION . FILES_MATCHING PATTERN "*.py")
+install(FILES requirements.txt .env.example DESTINATION .)
+
+set(CPACK_PACKAGE_NAME "sound_recognition")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_GENERATOR "ZIP")
+include(CPack)

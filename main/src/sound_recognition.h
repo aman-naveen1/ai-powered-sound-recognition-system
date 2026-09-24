@@ -9,9 +9,12 @@ private:
     double lastTempo;
     std::string lastGenre;
     std::string lastIntensity;
+    std::string executableDir;
+    std::string resolveProcessAudioScript() const;
 
 public:
     SoundRecognition();
+    void setExecutablePath(const std::string& exePath);
     void displayMenu();
     void recordAudio();
     void processAudio(const std::string& filePath);
