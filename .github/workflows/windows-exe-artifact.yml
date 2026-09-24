@@ -1,0 +1,44 @@
+name: Build Windows EXE Artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Configure CMake
+        run: cmake -S main -B main/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build executable
+        run: cmake --build main/build --config Release
+
+      - name: Package runtime files
+        shell: pwsh
+        run: |
+          $outDir = "artifact/sound-recognition-windows"
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+          Copy-Item "main/build/Release/sound_recognition.exe" "$outDir/sound_recognition.exe" -Force
+          Copy-Item "main/python" "$outDir/python" -Recurse -Force
+          Copy-Item "main/requirements.txt" "$outDir/requirements.txt" -Force
+          Copy-Item "main/.env.example" "$outDir/.env.example" -Force
+          Copy-Item "main/readme.md" "$outDir/readme.md" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sound-recognition-windows
+          path: artifact/sound-recognition-windows
+          if-no-files-found: error
